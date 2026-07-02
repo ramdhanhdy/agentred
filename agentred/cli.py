@@ -53,15 +53,18 @@ def make_llm_call(provider: str, model: str):
     import urllib.request
 
     def llm_call(system_prompt: str, user_prompt: str) -> str:
+        # opencode-go relay uses bare model names (no provider prefix)
+        model_id = model.split("/", 1)[-1] if "/" in model else model
+
         body = json.dumps(
             {
-                "model": model,
+                "model": model_id,
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
                 "temperature": 0.3,
-                "max_tokens": 8000,
+                "max_tokens": 16000,
             }
         ).encode("utf-8")
 
@@ -71,6 +74,8 @@ def make_llm_call(provider: str, model: str):
             headers={
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
+                # opencode-go relay is behind Cloudflare; needs browser UA
+                "User-Agent": "AgentRed/0.1",
             },
             method="POST",
         )

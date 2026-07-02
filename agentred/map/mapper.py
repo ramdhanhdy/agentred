@@ -6,8 +6,9 @@ job posts (as JSON), analyzes them, and returns structured demand signals.
 
 from __future__ import annotations
 
-import json
 import hashlib
+import json
+import re
 from typing import Optional
 
 from agentred.schemas import DemandSignal, JobPost, MapResult
@@ -83,6 +84,50 @@ Job Posts:
 Extract all demand signals following the schema. Return only valid JSON."""
 
 
+def _extract_json_block(text: str) -> str | None:
+    """Extract the outermost JSON object from text that may contain prose.
+
+    Uses brace matching to find the first { and its matching }.
+    Handles strings with braces inside them (escaped or in quotes).
+    """
+    start = text.find("{")
+    if start == -1:
+        return None
+
+    depth = 0
+    in_string = False
+    escape = False
+
+    for i in range(start, len(text)):
+        ch = text[i]
+
+        if escape:
+            escape = False
+            continue
+
+        if ch == "\\":
+            escape = True
+            continue
+
+        if ch == '"':
+            in_string = not in_string
+            continue
+
+        if in_string:
+            continue
+
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start : i + 1]
+
+    # No matching closing brace — return everything from start
+    # (may be truncated by max_tokens)
+    return text[start:]
+
+
 def parse_mapper_response(
     response_text: str, batch_id: str, posts: list[JobPost]
 ) -> MapResult:
@@ -107,29 +152,60 @@ def parse_mapper_response(
             lines = lines[:-1]
         text = "\n".join(lines)
 
+    # Try direct parse first
     try:
         data = json.loads(text)
     except json.JSONDecodeError:
-        # Try to find JSON in the text
-        import re
-        json_match = re.search(r"\{[\s\S]*\}", text)
-        if json_match:
-            try:
-                data = json.loads(json_match.group())
-            except json.JSONDecodeError as e:
-                return MapResult(
-                    batch_id=batch_id,
-                    posts_processed=len(posts),
-                    errors=[f"JSON parse error: {e}"],
-                    processing_notes="Failed to parse mapper response",
-                )
-        else:
+        # LLM may have wrapped JSON in prose. Extract the JSON block.
+        # Strategy: find the outermost { ... } using brace matching
+        json_str = _extract_json_block(text)
+        if json_str is None:
             return MapResult(
                 batch_id=batch_id,
                 posts_processed=len(posts),
                 errors=["No JSON found in response"],
                 processing_notes="Failed to parse mapper response",
             )
+
+        # Repair common LLM JSON mistakes:
+        # 1. Trailing commas before } or ]
+        repaired = re.sub(r",\s*([}\]])", r"\1", json_str)
+        try:
+            data = json.loads(repaired)
+        except json.JSONDecodeError:
+            # 2. Incomplete array (cut off by max_tokens) — try to close it
+            signals_match = re.search(
+                r'"demand_signals"\s*:\s*\[', repaired
+            )
+            if signals_match:
+                arr_start = signals_match.end()
+                last_complete = repaired.rfind("},", arr_start)
+                if last_complete > 0:
+                    truncated = repaired[: last_complete + 1]
+                    truncated += "\n  ]\n}"
+                    try:
+                        data = json.loads(truncated)
+                    except json.JSONDecodeError as e:
+                        return MapResult(
+                            batch_id=batch_id,
+                            posts_processed=len(posts),
+                            errors=[f"JSON parse error after repair: {e}"],
+                            processing_notes="Failed to parse mapper response",
+                        )
+                else:
+                    return MapResult(
+                        batch_id=batch_id,
+                        posts_processed=len(posts),
+                        errors=["JSON parse error: could not repair truncated response"],
+                        processing_notes="Failed to parse mapper response",
+                    )
+            else:
+                return MapResult(
+                    batch_id=batch_id,
+                    posts_processed=len(posts),
+                    errors=["JSON parse error: no demand_signals array found"],
+                    processing_notes="Failed to parse mapper response",
+                )
 
     # Parse demand signals
     signals = []
