@@ -4,6 +4,10 @@
 
 AgentRed scrapes job postings from multiple platforms, splits them into batches, processes each batch with a parallel AI mapper agent, then merges all results through a reducer agent into a ranked "what to build" opportunity report.
 
+## Architecture
+
+![AgentRed operational workflow architecture](docs/agentred-operational-workflow-architecture.png)
+
 ## How It Works
 
 ```

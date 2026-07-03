@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AgentRed Operational Workflow Architecture</title>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #020617;
+      --panel: rgba(15, 23, 42, 0.64);
+      --panel-2: rgba(2, 6, 23, 0.74);
+      --line: #1e293b;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --blue: #38bdf8;
+      --cyan: #22d3ee;
+      --emerald: #34d399;
+      --violet: #a78bfa;
+      --amber: #fbbf24;
+      --orange: #fb923c;
+      --rose: #fb7185;
+      --slate: #94a3b8;
+    }
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 12% 8%, rgba(56, 189, 248, 0.12), transparent 26rem),
+        radial-gradient(circle at 84% 20%, rgba(167, 139, 250, 0.10), transparent 30rem),
+        radial-gradient(circle at 50% 88%, rgba(52, 211, 153, 0.08), transparent 28rem),
+        var(--bg);
+      color: var(--text);
+      font-family: Geist, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      padding: 32px;
+    }
+    .container { max-width: 1440px; margin: 0 auto; }
+    .header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 24px;
+      align-items: end;
+      margin-bottom: 22px;
+    }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--cyan);
+      font: 600 12px/1 JetBrains Mono, monospace;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .pulse-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: var(--cyan);
+      box-shadow: 0 0 0 6px rgba(34, 211, 238, 0.10);
+      animation: pulse 2.4s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .55; transform: scale(.86); } }
+    h1 {
+      max-width: 860px;
+      font-size: clamp(32px, 4vw, 56px);
+      line-height: 0.94;
+      letter-spacing: -0.055em;
+      font-weight: 700;
+    }
+    .subtitle {
+      max-width: 720px;
+      margin-top: 14px;
+      color: #cbd5e1;
+      font-size: 15px;
+      line-height: 1.55;
+    }
+    .meta {
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      background: rgba(15, 23, 42, 0.54);
+      border-radius: 16px;
+      padding: 16px 18px;
+      min-width: 280px;
+      font-family: JetBrains Mono, monospace;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .meta strong { display: block; color: var(--text); font-size: 12px; margin-bottom: 7px; }
+    .diagram-container {
+      background: rgba(15, 23, 42, 0.46);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      border-radius: 24px;
+      padding: 18px;
+      overflow-x: auto;
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    }
+    svg {
+      width: 100%;
+      min-width: 1260px;
+      display: block;
+      border-radius: 18px;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 18px;
+    }
+    .card {
+      background: rgba(15, 23, 42, 0.56);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      border-radius: 18px;
+      padding: 18px;
+    }
+    .card-header {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .card-dot { width: 8px; height: 8px; border-radius: 999px; }
+    .card-dot.cyan { background: var(--cyan); }
+    .card-dot.emerald { background: var(--emerald); }
+    .card-dot.violet { background: var(--violet); }
+    .card h3 { font-size: 14px; letter-spacing: -0.02em; }
+    .card ul { list-style: none; color: var(--muted); font: 12px/1.58 JetBrains Mono, monospace; }
+    .card li { margin: 6px 0; }
+    .footer {
+      text-align: center;
+      color: #64748b;
+      font: 11px/1.5 JetBrains Mono, monospace;
+      margin-top: 18px;
+    }
+    @media (max-width: 900px) {
+      body { padding: 18px; }
+      .header { grid-template-columns: 1fr; }
+      .cards { grid-template-columns: 1fr; }
+      .meta { min-width: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div>
+        <div class="eyebrow"><span class="pulse-dot"></span> Operational workflow architecture</div>
+        <h1>AgentRed turns scattered demand signals into ranked decisions.</h1>
+        <p class="subtitle">A MapReduce-style workflow that collects job-market inputs, normalizes them, routes batches to focused mapper agents, validates and reduces signals, then produces decision-ready reports.</p>
+      </div>
+      <aside class="meta">
+        <strong>Portfolio framing</strong>
+        Project: AgentRed<br />
+        Domain: workflow automation<br />
+        Output: Markdown, DOCX, JSON<br />
+        Pattern: intake - route - verify - report
+      </aside>
+    </header>
+
+    <main class="diagram-container">
+      <svg viewBox="0 0 1680 1000" role="img" aria-label="AgentRed operational workflow architecture diagram">
+        <defs>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.55" opacity="0.7" />
+          </pattern>
+          <marker id="arrowhead" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+            <polygon points="0 0, 10 4, 0 8" fill="#64748b" />
+          </marker>
+          <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#000000" flood-opacity="0.32" />
+          </filter>
+          <linearGradient id="stageGlow" x1="0" x2="1" y1="0" y2="1">
+            <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.16" />
+            <stop offset="100%" stop-color="#a78bfa" stop-opacity="0.07" />
+          </linearGradient>
+        </defs>
+
+        <rect width="1680" height="1000" fill="#020617" />
+
+        <!-- Layer boundaries -->
+        <rect x="28" y="44" width="1624" height="635" rx="22" fill="rgba(15,23,42,0.30)" stroke="#334155" stroke-width="1" stroke-dasharray="8,6" />
+        <text x="48" y="75" fill="#cbd5e1" font-family="JetBrains Mono" font-size="13" font-weight="700">Core demand-intelligence workflow</text>
+
+        <rect x="48" y="116" width="245" height="480" rx="18" fill="rgba(30,41,59,0.18)" stroke="#475569" stroke-width="1" stroke-dasharray="6,5" />
+        <text x="70" y="146" fill="#94a3b8" font-family="JetBrains Mono" font-size="11" font-weight="700">External demand sources</text>
+
+        <rect x="332" y="116" width="502" height="480" rx="18" fill="rgba(8,51,68,0.10)" stroke="#0e7490" stroke-width="1" stroke-dasharray="6,5" />
+        <text x="354" y="146" fill="#22d3ee" font-family="JetBrains Mono" font-size="11" font-weight="700">Intake and source-of-truth layer</text>
+
+        <rect x="872" y="116" width="214" height="480" rx="18" fill="rgba(6,78,59,0.10)" stroke="#047857" stroke-width="1" stroke-dasharray="6,5" />
+        <text x="894" y="146" fill="#34d399" font-family="JetBrains Mono" font-size="11" font-weight="700">Routing layer</text>
+
+        <rect x="1118" y="116" width="262" height="480" rx="18" fill="rgba(251,146,60,0.08)" stroke="#c2410c" stroke-width="1" stroke-dasharray="6,5" />
+        <text x="1140" y="146" fill="#fb923c" font-family="JetBrains Mono" font-size="11" font-weight="700">Parallel work layer</text>
+
+        <rect x="1410" y="116" width="220" height="480" rx="18" fill="rgba(76,29,149,0.12)" stroke="#7c3aed" stroke-width="1" stroke-dasharray="6,5" />
+        <text x="1432" y="146" fill="#a78bfa" font-family="JetBrains Mono" font-size="11" font-weight="700">Decision layer</text>
+
+        <!-- Connections behind components -->
+        <path d="M 258 209 C 294 209, 306 230, 354 266" fill="none" stroke="#64748b" stroke-width="1.55" marker-end="url(#arrowhead)" />
+        <path d="M 258 294 C 298 294, 316 286, 354 282" fill="none" stroke="#64748b" stroke-width="1.55" marker-end="url(#arrowhead)" />
+        <path d="M 258 379 C 300 379, 320 330, 354 302" fill="none" stroke="#64748b" stroke-width="1.55" marker-end="url(#arrowhead)" />
+        <path d="M 258 464 C 304 464, 318 358, 354 318" fill="none" stroke="#64748b" stroke-width="1.55" marker-end="url(#arrowhead)" />
+        <line x1="540" y1="286" x2="614" y2="286" stroke="#22d3ee" stroke-width="1.7" marker-end="url(#arrowhead)" />
+        <path d="M 716 331 L 716 385" fill="none" stroke="#a78bfa" stroke-width="1.7" marker-end="url(#arrowhead)" />
+        <path d="M 820 431 C 850 431, 850 356, 884 356" fill="none" stroke="#34d399" stroke-width="1.7" marker-end="url(#arrowhead)" />
+        <path d="M 1064 356 L 1097 356 C 1112 356, 1112 247, 1136 247" fill="none" stroke="#fb923c" stroke-width="1.55" marker-end="url(#arrowhead)" />
+        <path d="M 1064 356 L 1136 387" fill="none" stroke="#fb923c" stroke-width="1.55" marker-end="url(#arrowhead)" />
+        <path d="M 1064 356 L 1097 356 C 1112 356, 1112 527, 1136 527" fill="none" stroke="#fb923c" stroke-width="1.55" marker-end="url(#arrowhead)" />
+        <path d="M 1246 284 L 1246 342" fill="none" stroke="#fb923c" stroke-width="1.4" marker-end="url(#arrowhead)" />
+        <path d="M 1246 424 L 1246 482" fill="none" stroke="#fb923c" stroke-width="1.4" marker-end="url(#arrowhead)" />
+        <path d="M 1356 387 C 1392 387, 1384 266, 1425 266" fill="none" stroke="#a78bfa" stroke-width="1.7" marker-end="url(#arrowhead)" />
+        <path d="M 1520 318 L 1520 376" fill="none" stroke="#a78bfa" stroke-width="1.7" marker-end="url(#arrowhead)" />
+        <path d="M 1520 470 L 1520 526" fill="none" stroke="#a78bfa" stroke-width="1.7" marker-end="url(#arrowhead)" />
+        <path d="M 1520 621 C 1520 672, 1380 712, 1270 738" fill="none" stroke="#64748b" stroke-width="1.2" stroke-dasharray="5,6" marker-end="url(#arrowhead)" opacity="0.85" />
+
+        <!-- Source cards -->
+        <rect x="70" y="174" width="188" height="82" rx="10" fill="#0f172a" filter="url(#softShadow)" />
+        <rect x="70" y="174" width="188" height="82" rx="10" fill="rgba(30,41,59,0.54)" stroke="#94a3b8" stroke-width="1.5" />
+        <text x="164" y="200" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="13" font-weight="700">Upwork</text>
+        <text x="164" y="218" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono" font-size="10">EXA search</text>
+        <text x="164" y="234" text-anchor="middle" fill="#64748b" font-family="JetBrains Mono" font-size="9">200-400 posts</text>
+
+        <rect x="70" y="259" width="188" height="82" rx="10" fill="#0f172a" filter="url(#softShadow)" />
+        <rect x="70" y="259" width="188" height="82" rx="10" fill="rgba(30,41,59,0.54)" stroke="#94a3b8" stroke-width="1.5" />
+        <text x="164" y="285" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="13" font-weight="700">Fiverr</text>
+        <text x="164" y="303" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono" font-size="10">EXA search</text>
+        <text x="164" y="319" text-anchor="middle" fill="#64748b" font-family="JetBrains Mono" font-size="9">100-200 posts</text>
+
+        <rect x="70" y="344" width="188" height="82" rx="10" fill="#0f172a" filter="url(#softShadow)" />
+        <rect x="70" y="344" width="188" height="82" rx="10" fill="rgba(30,41,59,0.54)" stroke="#94a3b8" stroke-width="1.5" />
+        <text x="164" y="370" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="13" font-weight="700">Himalayas</text>
+        <text x="164" y="388" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono" font-size="10">free JSON API</text>
+        <text x="164" y="404" text-anchor="middle" fill="#64748b" font-family="JetBrains Mono" font-size="9">100-200 posts</text>
+
+        <rect x="70" y="429" width="188" height="82" rx="10" fill="#0f172a" filter="url(#softShadow)" />
+        <rect x="70" y="429" width="188" height="82" rx="10" fill="rgba(30,41,59,0.54)" stroke="#94a3b8" stroke-width="1.5" />
+        <text x="164" y="455" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="13" font-weight="700">Jobicy</text>
+        <text x="164" y="473" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono" font-size="10">free REST API</text>
+        <text x="164" y="489" text-anchor="middle" fill="#64748b" font-family="JetBrains Mono" font-size="9">remote jobs</text>
+
+        <!-- Intake and source of truth -->
+        <rect x="354" y="222" width="186" height="128" rx="12" fill="#0f172a" filter="url(#softShadow)" />
+        <rect x="354" y="222" width="186" height="128" rx="12" fill="rgba(8,51,68,0.42)" stroke="#22d3ee" stroke-width="1.6" />
+        <text x="447" y="250" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="13" font-weight="700">Collectors</text>
+        <text x="447" y="271" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono" font-size="10">ExaCollector</text>
+        <text x="447" y="288" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono" font-size="10">HimalayasCollector</text>
+        <text x="447" y="305" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono" font-size="10">JobicyCollector</text>
+        <text x="447" y="328" text-anchor="middle" fill="#22d3ee" font-family="JetBrains Mono" font-size="9">collect_all()</text>
+
+        <rect x="614" y="222" width="205" height="128" rx="12" fill="#0f172a" filter="url(#softShadow)" />
+        <rect x="614" y="222" width="205" height="128" rx="12" fill="rgba(76,29,149,0.36)" stroke="#a78bfa" stroke-width="1.6" />
+        <text x="716" y="250" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="13" font-weight="700">JobPost schema</text>
+        <text x="716" y="273" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono" font-size="10">source, budget, skills</text>
+        <text x="716" y="291" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono" font-size="10">category, company, URL</text>
+        <text x="716" y="313" text-anchor="middle" fill="#a78bfa" font-family="JetBrains Mono" font-size="9">compact mapper input</text>
+
+        <rect x="614" y="385" width="205" height="92" rx="12" fill="#0f172a" filter="url(#softShadow)" />
+        <rect x="614" y="385" width="205" height="92" rx="12" fill="rgba(76,29,149,0.28)" stroke="#a78bfa" stroke-width="1.4" />
+        <text x="716" y="414" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="12" font-weight="700">Deduplicated list</text>
+        <text x="716" y="437" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono" font-size="10">global job_id check</text>
+        <text x="716" y="456" text-anchor="middle" fill="#64748b" font-family="JetBrains Mono" font-size="9">single source of truth</text>
+
+        <!-- Routing -->
+        <rect x="884" y="292" width="180" height="128" rx="12" fill="#0f172a" filter="url(#softShadow)" />
+        <rect x="884" y="292" width="180" height="128" rx="12" fill="rgba(6,78,59,0.42)" stroke="#34d399" stroke-width="1.6" />
+        <text x="974" y="321" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="13" font-weight="700">Partitioner</text>
+        <text x="974" y="344" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono" font-size="10">batch size 10-100</text>
+        <text x="974" y="362" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono" font-size="10">deterministic shuffle</text>
+        <text x="974" y="386" text-anchor="middle" fill="#34d399" font-family="JetBrains Mono" font-size="9">route work packets</text>
+
+        <!-- Mappers -->
+        <rect x="1136" y="210" width="220" height="74" rx="12" fill="#0f172a" filter="url(#softShadow)" />
+        <rect x="1136" y="210" width="220" height="74" rx="12" fill="rgba(251,146,60,0.30)" stroke="#fb923c" stroke-width="1.5" />
+        <text x="1246" y="237" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="12" font-weight="700">Mapper batch-001</text>
+        <text x="1246" y="257" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono" font-size="10">skills, tools, pain points</text>
+        <text x="1246" y="272" text-anchor="middle" fill="#64748b" font-family="JetBrains Mono" font-size="8">isolated context</text>
+
+        <rect x="1136" y="350" width="220" height="74" rx="12" fill="#0f172a" filter="url(#softShadow)" />
+        <rect x="1136" y="350" width="220" height="74" rx="12" fill="rgba(251,146,60,0.30)" stroke="#fb923c" stroke-width="1.5" />
+        <text x="1246" y="377" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="12" font-weight="700">Mapper batch-002</text>
+        <text x="1246" y="397" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono" font-size="10">budget and automation signals</text>
+        <text x="1246" y="412" text-anchor="middle" fill="#64748b" font-family="JetBrains Mono" font-size="8">wave controlled</text>
+
+        <rect x="1136" y="490" width="220" height="74" rx="12" fill="#0f172a" filter="url(#softShadow)" />
+        <rect x="1136" y="490" width="220" height="74" rx="12" fill="rgba(251,146,60,0.30)" stroke="#fb923c" stroke-width="1.5" />
+        <text x="1246" y="517" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="12" font-weight="700">Mapper batch-N</text>
+        <text x="1246" y="537" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono" font-size="10">DemandSignal JSON</text>
+        <text x="1246" y="552" text-anchor="middle" fill="#64748b" font-family="JetBrains Mono" font-size="8">parse and repair step</text>
+
+        <!-- Decision layer -->
+        <rect x="1425" y="209" width="190" height="110" rx="12" fill="#0f172a" filter="url(#softShadow)" />
+        <rect x="1425" y="209" width="190" height="110" rx="12" fill="rgba(76,29,149,0.38)" stroke="#a78bfa" stroke-width="1.6" />
+        <text x="1520" y="239" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="13" font-weight="700">Reducer</text>
+        <text x="1520" y="262" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono" font-size="10">aggregate and cluster</text>
+        <text x="1520" y="280" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono" font-size="10">resolve contradictions</text>
+        <text x="1520" y="302" text-anchor="middle" fill="#a78bfa" font-family="JetBrains Mono" font-size="9">rank opportunity themes</text>
+
+        <rect x="1425" y="376" width="190" height="95" rx="12" fill="#0f172a" filter="url(#softShadow)" />
+        <rect x="1425" y="376" width="190" height="95" rx="12" fill="rgba(120,53,15,0.30)" stroke="#fbbf24" stroke-width="1.5" />
+        <text x="1520" y="405" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="12" font-weight="700">Demand score</text>
+        <text x="1520" y="427" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono" font-size="9">volume 35% + budget 25%</text>
+        <text x="1520" y="445" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono" font-size="9">automation 25% + evidence 15%</text>
+
+        <rect x="1425" y="526" width="190" height="96" rx="12" fill="#0f172a" filter="url(#softShadow)" />
+        <rect x="1425" y="526" width="190" height="96" rx="12" fill="rgba(6,78,59,0.38)" stroke="#34d399" stroke-width="1.6" />
+        <text x="1520" y="556" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="12" font-weight="700">Report outputs</text>
+        <text x="1520" y="579" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono" font-size="10">Markdown + DOCX</text>
+        <text x="1520" y="597" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono" font-size="10">JSON run report</text>
+
+        <!-- Operational abstraction strip -->
+        <rect x="48" y="700" width="1584" height="235" rx="22" fill="url(#stageGlow)" stroke="#334155" stroke-width="1" />
+        <text x="74" y="738" fill="#f8fafc" font-family="JetBrains Mono" font-size="17" font-weight="700">Layer of abstraction for operational workflows</text>
+        <text x="74" y="768" fill="#94a3b8" font-family="JetBrains Mono" font-size="12">Same control pattern: scattered inputs become a traceable workflow with status, validation, and decision output.</text>
+
+        <!-- Abstraction cards and arrows -->
+        <line x1="290" y1="855" x2="315" y2="855" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)" />
+        <line x1="545" y1="855" x2="570" y2="855" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)" />
+        <line x1="800" y1="855" x2="825" y2="855" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)" />
+        <line x1="1055" y1="855" x2="1080" y2="855" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)" />
+        <line x1="1310" y1="855" x2="1335" y2="855" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowhead)" />
+
+        <rect x="70" y="812" width="220" height="86" rx="13" fill="#0f172a" stroke="#22d3ee" stroke-width="1.4" />
+        <text x="180" y="844" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="14" font-weight="700">1. Intake</text>
+        <text x="180" y="870" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono" font-size="11">raw posts, files, forms</text>
+
+        <rect x="325" y="812" width="220" height="86" rx="13" fill="#0f172a" stroke="#a78bfa" stroke-width="1.4" />
+        <text x="435" y="844" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="14" font-weight="700">2. Normalize</text>
+        <text x="435" y="870" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono" font-size="11">schema + source of truth</text>
+
+        <rect x="580" y="812" width="220" height="86" rx="13" fill="#0f172a" stroke="#34d399" stroke-width="1.4" />
+        <text x="690" y="844" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="14" font-weight="700">3. Route</text>
+        <text x="690" y="870" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono" font-size="11">batch, assign, track</text>
+
+        <rect x="835" y="812" width="220" height="86" rx="13" fill="#0f172a" stroke="#fb923c" stroke-width="1.4" />
+        <text x="945" y="844" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="14" font-weight="700">4. Execute</text>
+        <text x="945" y="870" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono" font-size="11">focused work packets</text>
+
+        <rect x="1090" y="812" width="220" height="86" rx="13" fill="#0f172a" stroke="#fbbf24" stroke-width="1.4" />
+        <text x="1200" y="844" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="14" font-weight="700">5. Synthesize</text>
+        <text x="1200" y="870" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono" font-size="11">merge, score, verify</text>
+
+        <rect x="1345" y="812" width="220" height="86" rx="13" fill="#0f172a" stroke="#38bdf8" stroke-width="1.4" />
+        <text x="1455" y="844" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="14" font-weight="700">6. Report</text>
+        <text x="1455" y="870" text-anchor="middle" fill="#94a3b8" font-family="JetBrains Mono" font-size="11">dashboard, brief, archive</text>
+
+        <text x="74" y="928" fill="#64748b" font-family="JetBrains Mono" font-size="11">Operational translation: allocation data, store confirmations, campaign entries, photo proofs, and BI exports can use the same intake - tracker - gate - report pattern.</text>
+
+        <!-- Legend outside main boundaries -->
+        <text x="1060" y="972" fill="#ffffff" font-family="JetBrains Mono" font-size="12" font-weight="700">Legend</text>
+        <rect x="1130" y="961" width="18" height="12" rx="2" fill="rgba(8,51,68,0.42)" stroke="#22d3ee" stroke-width="1" />
+        <text x="1156" y="971" fill="#94a3b8" font-family="JetBrains Mono" font-size="10">workflow/service</text>
+        <rect x="1282" y="961" width="18" height="12" rx="2" fill="rgba(76,29,149,0.36)" stroke="#a78bfa" stroke-width="1" />
+        <text x="1308" y="971" fill="#94a3b8" font-family="JetBrains Mono" font-size="10">data/schema</text>
+        <rect x="1400" y="961" width="18" height="12" rx="2" fill="rgba(251,146,60,0.30)" stroke="#fb923c" stroke-width="1" />
+        <text x="1426" y="971" fill="#94a3b8" font-family="JetBrains Mono" font-size="10">execution</text>
+        <line x1="1510" y1="967" x2="1542" y2="967" stroke="#64748b" stroke-width="1.4" marker-end="url(#arrowhead)" />
+        <text x="1550" y="971" fill="#94a3b8" font-family="JetBrains Mono" font-size="10">flow</text>
+      </svg>
+    </main>
+
+    <section class="cards">
+      <article class="card">
+        <div class="card-header"><span class="card-dot cyan"></span><h3>Operational story</h3></div>
+        <ul>
+          <li>• Starts with scattered raw inputs from multiple sources</li>
+          <li>• Normalizes data into one schema before work begins</li>
+          <li>• Routes work packets so each unit is trackable</li>
+          <li>• Produces a report that supports decisions</li>
+        </ul>
+      </article>
+      <article class="card">
+        <div class="card-header"><span class="card-dot emerald"></span><h3>Implementation evidence</h3></div>
+        <ul>
+          <li>• Collectors for Upwork, Fiverr, Himalayas, and Jobicy</li>
+          <li>• Pydantic models for JobPost, DemandSignal, Opportunity</li>
+          <li>• MapReduce pipeline with batch routing and reduction</li>
+          <li>• Markdown, DOCX, and JSON reporting outputs</li>
+        </ul>
+      </article>
+      <article class="card">
+        <div class="card-header"><span class="card-dot violet"></span><h3>Resume angle</h3></div>
+        <ul>
+          <li>• Frame as workflow design, not only AI experimentation</li>
+          <li>• Emphasize intake, tracking, validation, reporting, archive</li>
+          <li>• Useful bridge to store allocation and campaign tracking</li>
+          <li>• Shows ability to structure messy operational processes</li>
+        </ul>
+      </article>
+    </section>
+
+    <p class="footer">AgentRed architecture diagram - generated as standalone HTML/SVG for portfolio and resume strategy use.</p>
+  </div>
+</body>
+</html>
