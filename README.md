@@ -57,8 +57,10 @@ This scales horizontally: more job posts = more mappers, not longer context wind
 ## Quick Start
 
 ```bash
-# Install
-pip install agentred
+# Clone and install
+git clone https://github.com/ramdhanhdy/agentred.git
+cd agentred
+pip install -e .
 
 # Collect only (no LLM needed, saves to JSON)
 agentred collect --output output/
@@ -74,15 +76,21 @@ agentred run \
 ## Installation
 
 ```bash
+# Clone the repo
+git clone https://github.com/ramdhanhdy/agentred.git
+cd agentred
+
 # Basic install (collection + markdown reports)
-pip install agentred
+pip install -e .
 
 # With DOCX support
-pip install agentred[report]
+pip install -e ".[report]"
 
 # With dev dependencies (tests)
-pip install agentred[dev]
+pip install -e ".[dev]"
 ```
+
+> **Note:** AgentRed is not published on PyPI. Install directly from the GitHub repository as shown above.
 
 ## Configuration
 
@@ -216,8 +224,10 @@ Each opportunity is scored 0-100 based on:
 ## Development
 
 ```bash
-# Install dev dependencies
-pip install agentred[dev]
+# Clone and install dev dependencies
+git clone https://github.com/ramdhanhdy/agentred.git
+cd agentred
+pip install -e ".[dev]"
 
 # Run tests
 pytest tests/ -v
