@@ -66,10 +66,21 @@ class HimalayasCollector(BaseCollector):
             return []
 
     def _parse_job(self, job: dict) -> JobPost:
-        """Parse a Himalayas job dict into a JobPost."""
-        raw_id = str(job.get("id", job.get("slug", "")))
+        """Parse a Himalayas job dict into a JobPost.
+
+        The API response structure changed: the old ``id``/``slug`` fields are
+        gone. We use ``guid`` (always present, unique per job) and fall back
+        through ``applicationLink`` and a title+company hash for robustness.
+        """
+        raw_id = str(
+            job.get("guid")
+            or job.get("applicationLink")
+            or job.get("id")
+            or job.get("slug")
+            or f"{job.get('companyName', '')}_{job.get('title', '')}"
+        )
         title = job.get("title", "Untitled")
-        url = job.get("url", job.get("apply_url", ""))
+        url = job.get("applicationLink") or job.get("url") or job.get("apply_url", "")
 
         # Build description from available fields
         description_parts = []
@@ -81,31 +92,41 @@ class HimalayasCollector(BaseCollector):
             description_parts.append(f"Requirements: {job['requirements']}")
         description = "\n\n".join(description_parts)[:3000]
 
-        # Skills from tags
-        skills = []
-        tags = job.get("tags", [])
-        if isinstance(tags, list):
-            skills = [t.get("name", str(t)) if isinstance(t, dict) else str(t) for t in tags[:10]]
+        # Skills from categories (new API) or tags (old API)
+        skills: list[str] = []
+        cats = job.get("categories") or job.get("parentCategories")
+        if isinstance(cats, list):
+            skills = [str(c) for c in cats[:10]]
+        else:
+            tags = job.get("tags", [])
+            if isinstance(tags, list):
+                skills = [t.get("name", str(t)) if isinstance(t, dict) else str(t) for t in tags[:10]]
 
-        # Company
+        # Company — new API uses flat "companyName", old API used nested dict
         company = ""
-        company_data = job.get("company", {})
-        if isinstance(company_data, dict):
-            company = company_data.get("name", "")
-        elif isinstance(company_data, str):
-            company = company_data
+        if job.get("companyName"):
+            company = job["companyName"]
+        elif isinstance(job.get("company"), dict):
+            company = job["company"].get("name", "")
+        elif isinstance(job.get("company"), str):
+            company = job["company"]
 
-        # Salary
-        salary_min = job.get("salary_min") or job.get("min_salary")
-        salary_max = job.get("salary_max") or job.get("max_salary")
+        # Salary — new API uses camelCase, old API used snake_case
+        salary_min = job.get("minSalary") or job.get("salary_min") or job.get("min_salary")
+        salary_max = job.get("maxSalary") or job.get("salary_max") or job.get("max_salary")
+        salary_period = job.get("salaryPeriod") or job.get("salary_period")
         budget = ""
         budget_type_str = "unknown"
         if salary_min and salary_max:
             budget = f"${salary_min}-${salary_max}"
-            budget_type_str = "hourly" if job.get("salary_period") == "hourly" else "fixed"
+            budget_type_str = "hourly" if salary_period == "hourly" else "fixed"
 
         from agentred.schemas import BudgetType
         budget_type = BudgetType(budget_type_str) if budget_type_str in ("hourly", "fixed") else BudgetType.UNKNOWN
+
+        # Category — new API uses "parentCategories" list, old used "category" string
+        parent_cats = job.get("parentCategories", [])
+        category = parent_cats[0] if isinstance(parent_cats, list) and parent_cats else job.get("category", "")
 
         return JobPost(
             job_id=make_job_id("himalayas", raw_id),
@@ -119,7 +140,7 @@ class HimalayasCollector(BaseCollector):
             budget_type=budget_type,
             budget_min=float(salary_min) if salary_min else None,
             budget_max=float(salary_max) if salary_max else None,
-            category=job.get("category", ""),
+            category=category,
         )
 
     def collect(self, **kwargs) -> list[JobPost]:
