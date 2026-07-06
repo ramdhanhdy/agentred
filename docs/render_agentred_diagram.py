@@ -113,12 +113,6 @@ text_left('AgentRed turns scattered demand signals into ranked decisions.', 70, 
 sub = 'MapReduce-style workflow for collecting job-market inputs, normalizing them, routing batches, validating signals, and producing decision-ready reports.'
 for i, line_txt in enumerate(textwrap.wrap(sub, 95)):
     text_left(line_txt, 72, 152 + i*29, f_sub, C('#cbd5e1'))
-rounded_rect(1540, 62, 380, 118, C('#0f172a', 175), C('#334155', 180), 1, 18)
-text_left('Portfolio framing', 1564, 84, f_h, text)
-text_left('Project: AgentRed', 1564, 112, f_body, muted)
-text_left('Domain: workflow automation', 1564, 134, f_body, muted)
-text_left('Pattern: intake - route - verify - report', 1564, 156, f_body, muted)
-
 rounded_rect(50, 210, 1900, 610, C('#0f172a', 120), C('#334155', 190), 1, 26)
 text_left('Core demand-intelligence workflow', 84, 238, f_h, C('#cbd5e1'))
 
